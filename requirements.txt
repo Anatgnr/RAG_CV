@@ -4,3 +4,7 @@ scikit-learn
 openai
 python-dotenv
 PyMuPDF
+gpt4all
+torch
+torchaudio
+torchvision

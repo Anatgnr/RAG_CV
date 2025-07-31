@@ -1,5 +1,6 @@
 from src.rag import RAGMatcher
 from src.pdf_reader import extract_text_from_pdf
+from src.llm_hermes import extract_cv_info
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -8,6 +9,10 @@ warnings.filterwarnings("ignore")
 #     cv_text = f.read()
 
 cv_text = extract_text_from_pdf("data/cv.pdf")
+parsed_cv = extract_cv_info(cv_text)
+
+print("✅ CV structuré :")
+print(parsed_cv)
 
 with open("data/job.txt", "r", encoding="utf-8") as f:
     job_text = f.read()
