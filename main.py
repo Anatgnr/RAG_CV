@@ -1,6 +1,6 @@
 from src.rag import RAGMatcher
 from src.pdf_reader import extract_text_from_pdf
-from src.llm_hermes import extract_cv_info
+from src.llm_hermes import extract_cv_info, extract_job_info
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -17,10 +17,16 @@ print(parsed_cv)
 with open("data/job.txt", "r", encoding="utf-8") as f:
     job_text = f.read()
 
+parsed_job = extract_job_info(job_text)
+
 # RAG Matching
 matcher = RAGMatcher()
+# global poor analysis
 # score = matcher.compute_similarity(cv_text, job_text)
-sections_scores = matcher.match_by_section(cv_text, job_text)
+# more details analysis
+# sections_scores = matcher.match_by_section(cv_text, job_text)
+# with LLM
+sections_scores = matcher.match_by_section(parsed_cv, parsed_job)
 
 # print(f"Score de compatibilité : {score}/100")
 

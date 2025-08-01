@@ -17,7 +17,7 @@ llm = GPT4All(
     model_name='hermes-llama2-13b.gguf',  # 🔁 Extension incluse
     model_path=MODEL_PATH,
     model_type='llama',
-    allow_download=False
+    allow_download=True
 )
 
 def loading_animation(message="Thinking..."):
@@ -68,3 +68,37 @@ Here is the CV :
         print(f"Output was:\n{output}")
         return {}
 
+def extract_job_info(text: str) -> dict:
+    prompt = f"""
+You are a HR you need to fill the following tabs with the infos of the job description you'll be given.
+Pay attention to the details. Do a deep analysis understand the implicit implied.
+You are doing an analysis of a job description and you need to extract the required skills, experiences, and formations to see if a CV matches.
+
+{{
+  "skills": [],
+  "experiences": [],
+  "formations": []
+}}
+
+Here is the job description :
+{text}
+"""
+
+    loading = loading_animation()
+    try:
+        with llm.chat_session():
+            output_chunks = []
+            for chunk in llm.generate(prompt, max_tokens=1024):
+                output_chunks.append(chunk)
+            output = "".join(output_chunks)
+    finally:
+        loading.set()  # Stop loading animation
+
+    try:
+        start = output.find("{")
+        end = output.rfind("}") + 1
+        return json.loads(output[start:end])
+    except Exception as e:
+        print(f"JSON parsing error: {e}")
+        print(f"Output was:\n{output}")
+        return {}
