@@ -213,3 +213,4 @@ __marimo__/
 # Models weights
 .models/
 hermes-llama2-13b.gguf
+openhermes-2.5-Mistral-7b.Q4_K_S.gguf

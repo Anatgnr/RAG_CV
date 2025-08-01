@@ -72,7 +72,6 @@ def extract_job_info(text: str) -> dict:
     prompt = f"""
 You are a HR you need to fill the following tabs with the infos of the job description you'll be given.
 Pay attention to the details. Do a deep analysis understand the implicit implied.
-You are doing an analysis of a job description and you need to extract the required skills, experiences, and formations to see if a CV matches.
 
 {{
   "skills": [],
