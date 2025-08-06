@@ -1,6 +1,7 @@
 from src.rag import RAGMatcher
 from src.pdf_reader import extract_text_from_pdf
-from src.llm_mistral import extract_cv_info, extract_job_info
+# from src.llm_mistral import extract_cv_info, extract_job_info
+from src.llm_gpt import extract_cv_info, extract_job_info
 import warnings
 warnings.filterwarnings("ignore")
 
