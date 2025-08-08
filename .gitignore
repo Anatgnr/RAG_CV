@@ -214,3 +214,6 @@ __marimo__/
 .models/
 hermes-llama2-13b.gguf
 openhermes-2.5-Mistral-7b.Q4_K_S.gguf
+
+# Outputs
+output/

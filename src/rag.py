@@ -10,12 +10,10 @@ class RAGMatcher:
         cv_vec = self.embedder.embed_text(cv_text)
         job_vec = self.embedder.embed_text(job_text)
         similarity = cosine_similarity([cv_vec], [job_vec])[0][0]
+        similarity = max(0, similarity)  # Assure une silimilarité non négative
         return round(similarity * 100, 2)
     
-    def match_by_section(self, cv_text: str, job_text: str) -> dict:
-        cv_sections = extract_sections(cv_text)
-        job_sections = extract_sections(job_text)
-
+    def match_by_section(self, cv_sections: str, job_sections: str) -> float:
         print("\n🧾 Sections extraites du CV :")
         for key, val in cv_sections.items():
             print(f"- {key}: {val[:5]}")
@@ -26,19 +24,18 @@ class RAGMatcher:
             
         scores = {}
 
-        for section in ["skills", "experience", "keywords"]:
-            cv_part = " ".join(cv_sections[section])
-            job_part = " ".join(job_sections[section])
+        for section in ["skills", "experiences", "formations"]:
+            cv_part = " ".join(set([s.lower() for s in cv_sections.get(section, [])]))
+            job_part = " ".join(set([s.lower() for s in job_sections.get(section, [])]))
             if cv_part and job_part:
                 scores[section] = round(self.compute_similarity(cv_part, job_part), 2)
             else:
                 scores[section] = 0.0
 
-        # Pondération : par défaut on considère skills > experience > keywords
         global_score = round(
             0.5 * scores["skills"] +
-            0.3 * scores["experience"] +
-            0.2 * scores["keywords"],
+            0.3 * scores["experiences"] +
+            0.2 * scores["formations"],
             2
         )
 
