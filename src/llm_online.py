@@ -11,11 +11,25 @@ headers = {
     "Content-Type": "application/json"
 }
 
-def generate_text(prompt: str) -> str:
+def generate_key_words(prompt: str) -> str:
     payload = {
-        "model": "openai/gpt-oss-120b",
+        "model": "deepseek/deepseek-chat-v3-0324:free",
         "messages": [
             {"role": "system", "content": "You are an assistant that replies only in valid JSON format, without any explanations."},
+            {"role": "user", "content": prompt}
+        ]
+    }
+    response = requests.post(url, headers=headers, json=payload)
+    if response.status_code != 200:
+        raise RuntimeError(f"OpenRouter API error: {response.status_code} - {response.text}")
+    return response.json()["choices"][0]["message"]["content"]
+
+def generate_CV(prompt: str) -> str:
+    payload = {
+        "model": "mistralai/mistral-7b-instruct:free",
+        "messages": [
+            {"role": "system", "content": "You are Pro in resume writing. Use your knowledge and what \
+                will be given to produce a high-quality CV."},
             {"role": "user", "content": prompt}
         ]
     }
@@ -37,7 +51,7 @@ def extract_cv_info(text: str) -> dict:
     Extract key-words for each section from the following text below and **return only the JSON**:
     \"\"\"{text}\"\"\"
     """
-    output = generate_text(prompt)
+    output = generate_key_words(prompt)
     try:
         cleaned = output.strip()
         # print("-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#")
@@ -62,7 +76,7 @@ def extract_job_info(text: str) -> dict:
     Extract key-words for each section from the following text below and **return only the JSON**:
     \"\"\"{text}\"\"\"
     """
-    output = generate_text(prompt)
+    output = generate_key_words(prompt)
     try:
         cleaned = output.strip()
         # print("-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#")
@@ -104,5 +118,5 @@ def reformulate_cv_for_job(cv: str, job_offer: str, job_structured: dict) -> str
     It should read like a natural text with sections and paragraphs. Use the structure of the original CV as a guide.
     It shouldn't not look like a list. Return only the reformulated CV as markdown text.
     """
-    reformulated_cv_text = generate_text(prompt)
+    reformulated_cv_text = generate_CV(prompt)
     return reformulated_cv_text
