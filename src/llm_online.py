@@ -1,5 +1,7 @@
 import requests
 import json
+import threading
+import time
 from src.get_API_key import get_api_key
 
 API_KEY = get_api_key()
@@ -10,6 +12,20 @@ headers = {
     "Authorization": f"Bearer {API_KEY}",
     "Content-Type": "application/json"
 }
+
+def loading_animation(message="Thinking..."):
+    stop_loading = threading.Event()
+    def animate():
+        spinner = ['|', '/', '-', '\\']
+        idx = 0
+        while not stop_loading.is_set():
+            print(f"\r{message} {spinner[idx % len(spinner)]}", end='', flush=True)
+            idx += 1
+            time.sleep(0.1)
+        print('\r' + ' ' * (len(message) + 2) + '\r', end='', flush=True)
+    t = threading.Thread(target=animate)
+    t.start()
+    return stop_loading
 
 def clean_json_markdown(text: str) -> str:
     """
@@ -24,9 +40,28 @@ def clean_json_markdown(text: str) -> str:
         text = text[:-3].strip()
     return text
 
-def generate_key_words(prompt: str) -> str:
+def generate_key_words_for_CV(prompt: str) -> str:
     payload = {
         "model": "deepseek/deepseek-chat-v3-0324:free",
+        "messages": [
+            {"role": "system", "content": "You are an HR expert assistant that replies \
+                ONLY in valid JSON format, WITHOUT any EXPLANATIONS or INTRODUCTIONS. \
+                Return ONLY the JSON object."},
+            {"role": "user", "content": prompt}
+        ]
+    }
+    response = requests.post(url, headers=headers, json=payload)
+    if response.status_code != 200:
+        raise RuntimeError(f"OpenRouter API error: {response.status_code} - {response.text}")
+    data = response.json()
+    if "choices" not in data or not data["choices"]:
+        print(f"API response missing 'choices': {data}")
+        return ""
+    return data["choices"][0]["message"]["content"]
+
+def generate_key_words_for_job_offer(prompt: str) -> str:
+    payload = {
+        "model": "deepseek/deepseek-r1-0528-qwen3-8b:free",
         "messages": [
             {"role": "system", "content": "You are an HR expert assistant that replies \
                 ONLY in valid JSON format, WITHOUT any EXPLANATIONS or INTRODUCTIONS. \
@@ -70,9 +105,9 @@ def extract_cv_info(text: str) -> dict:
     Extract key-words for each section from the following text below and **return only the JSON**:
     \"\"\"{text}\"\"\"
     """
-    output = generate_key_words(prompt)
-    # print(f"Output for CV was:\n{output}")
+    loading = loading_animation("Extracting CV information...")
     try:
+        output = generate_key_words_for_CV(prompt)
         cleaned = clean_json_markdown(output)
         print(f"Cleaned output: \n{cleaned}")
         if cleaned and cleaned[0] == '{':
@@ -85,6 +120,8 @@ def extract_cv_info(text: str) -> dict:
         print(f"JSON parsing error: {e}")
         print(f"Output for CV was:\n{output}")
         return {}
+    finally:
+        loading.set()
 
 def extract_job_info(text: str) -> dict:
     prompt = f"""
@@ -99,9 +136,9 @@ def extract_job_info(text: str) -> dict:
     Extract key-words for each section from the following text below and **return only the JSON**:
     \"\"\"{text}\"\"\"
     """
-    output = generate_key_words(prompt)
-    # print(f"Output for job offer was:\n{output}")
+    loading = loading_animation("Extracting job information...")
     try:
+        output = generate_key_words_for_job_offer(prompt)
         cleaned = clean_json_markdown(output)
         print(f"Cleaned output: \n{cleaned}")
         if cleaned and cleaned[0] == '{':
@@ -114,15 +151,10 @@ def extract_job_info(text: str) -> dict:
         print(f"JSON parsing error: {e}")
         print(f"Output for job offer was:\n{output}")
         return {}
+    finally:
+        loading.set()
 
 def reformulate_cv_for_job(cv: str, job_offer: str, job_structured: dict) -> str:
-    """
-    Reformule le CV en fonction de l'offre d'emploi en respectant les contraintes :
-    - Ne pas inventer de compétences.
-    - Peut déduire des soft skills raisonnablement.
-    - Adapter le vocabulaire des expériences au contexte du job.
-    Retourne un texte de CV reformulé prêt à être converti en PDF.
-    """
     prompt = f"""
     Here are a CV: {cv}
     And here is the job offer: {job_offer}
@@ -145,5 +177,9 @@ def reformulate_cv_for_job(cv: str, job_offer: str, job_structured: dict) -> str
     It should read like a natural text with sections and paragraphs. Use the structure of the original CV as a guide.
     It shouldn't not look like a list. Return only the reformulated CV as markdown text.
     """
-    reformulated_cv_text = generate_CV(prompt)
-    return reformulated_cv_text
+    loading = loading_animation("Generating reformulated CV...")
+    try:
+        reformulated_cv_text = generate_CV(prompt)
+        return reformulated_cv_text
+    finally:
+        loading.set()

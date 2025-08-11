@@ -2,12 +2,14 @@ from src.rag import RAGMatcher
 from src.pdf_reader import extract_text_from_pdf
 from src.llm_online import extract_cv_info, extract_job_info, reformulate_cv_for_job
 import os
+import markdown
+import pdfkit
+import time
 import warnings
 warnings.filterwarnings("ignore")
 
 def save_markdown_to_pdf(markdown_text: str, output_path: str):
-    import markdown
-    import pdfkit
+
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     html = markdown.markdown(markdown_text)
@@ -20,6 +22,7 @@ def main():
     with open("data/job.txt", "r", encoding="utf-8") as f:
         job_text = f.read()
     parsed_job = extract_job_info(job_text)
+    time.sleep(3)  # Just to ensure the loading animation has time to start
 
     matcher = RAGMatcher()
 
@@ -36,6 +39,7 @@ def main():
     print("✅ Offre structuré :")
     print(parsed_job)
 
+    time.sleep(3)  # Just to ensure the loading animation has time to start
     sections_scores = evaluate(parsed_cv, parsed_job)
 
     while sections_scores['global'] < 80:
