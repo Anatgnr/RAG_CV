@@ -1,6 +1,6 @@
 import requests
 import json
-from get_API_key import get_api_key
+from src.get_API_key import get_api_key
 
 API_KEY = get_api_key()
 
@@ -11,18 +11,37 @@ headers = {
     "Content-Type": "application/json"
 }
 
+def clean_json_markdown(text: str) -> str:
+    """
+    Supprime les balises ```json et ``` autour du JSON si présentes.
+    """
+    text = text.strip()
+    if text.startswith("```json"):
+        text = text[len("```json"):].strip()
+    if text.startswith("```"):
+        text = text[len("```"):].strip()
+    if text.endswith("```"):
+        text = text[:-3].strip()
+    return text
+
 def generate_key_words(prompt: str) -> str:
     payload = {
         "model": "deepseek/deepseek-chat-v3-0324:free",
         "messages": [
-            {"role": "system", "content": "You are an assistant that replies only in valid JSON format, without any explanations."},
+            {"role": "system", "content": "You are an HR expert assistant that replies \
+                ONLY in valid JSON format, WITHOUT any EXPLANATIONS or INTRODUCTIONS. \
+                Return ONLY the JSON object."},
             {"role": "user", "content": prompt}
         ]
     }
     response = requests.post(url, headers=headers, json=payload)
     if response.status_code != 200:
         raise RuntimeError(f"OpenRouter API error: {response.status_code} - {response.text}")
-    return response.json()["choices"][0]["message"]["content"]
+    data = response.json()
+    if "choices" not in data or not data["choices"]:
+        print(f"API response missing 'choices': {data}")
+        return ""
+    return data["choices"][0]["message"]["content"]
 
 def generate_CV(prompt: str) -> str:
     payload = {
@@ -52,12 +71,16 @@ def extract_cv_info(text: str) -> dict:
     \"\"\"{text}\"\"\"
     """
     output = generate_key_words(prompt)
+    # print(f"Output for CV was:\n{output}")
     try:
-        cleaned = output.strip()
-        # print("-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#")
-        # print(f"Output final for the CV is:\n{cleaned}")
-        # print("-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#")
-        return json.loads(cleaned)
+        cleaned = clean_json_markdown(output)
+        print(f"Cleaned output: \n{cleaned}")
+        if cleaned and cleaned[0] == '{':
+            return json.loads(cleaned)
+        else:
+            print("Output does not start with '{', cannot parse as JSON.")
+            print(f"Output for CV was:\n{output}")
+            return {}
     except Exception as e:
         print(f"JSON parsing error: {e}")
         print(f"Output for CV was:\n{output}")
@@ -77,12 +100,16 @@ def extract_job_info(text: str) -> dict:
     \"\"\"{text}\"\"\"
     """
     output = generate_key_words(prompt)
+    # print(f"Output for job offer was:\n{output}")
     try:
-        cleaned = output.strip()
-        # print("-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#")
-        # print(f"Output final for the job offer is:\n{cleaned}")
-        # print("-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#")
-        return json.loads(cleaned)
+        cleaned = clean_json_markdown(output)
+        print(f"Cleaned output: \n{cleaned}")
+        if cleaned and cleaned[0] == '{':
+            return json.loads(cleaned)
+        else:
+            print("Output does not start with '{', cannot parse as JSON.")
+            print(f"Output for job offer was:\n{output}")
+            return {}
     except Exception as e:
         print(f"JSON parsing error: {e}")
         print(f"Output for job offer was:\n{output}")
